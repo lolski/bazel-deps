@@ -52,7 +52,7 @@ object Label {
   def localTarget(pathToRoot: List[String], m: UnversionedCoordinate, lang: Language): Label = {
     val p = Path(pathToRoot ::: (m.group.asString.map {
       case '.' => '/'
-      case '-' => '_'
+      case '_' => '-'
       case other => other
     }.mkString
     .split('/')
@@ -72,8 +72,8 @@ object Label {
     }
 
     val name = artName.map {
-      case '.' => '_'
-      case '-' => '_'
+      case '.' => '-'
+      case '_' => '-'
       case oth => oth
     }.mkString
     Label(None, p, name)
