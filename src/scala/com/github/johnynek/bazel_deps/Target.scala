@@ -14,7 +14,7 @@ object Target {
     Doc.text("\"%s\"".format(s))
 
   def fqnToLabelFragment(fqn: String): String =
-    fqn.toLowerCase.replaceAll("[^a-z0-9]", "_")
+    fqn.toLowerCase.replaceAll("[^a-z0-9]", "-")
 
   sealed abstract class Kind(override val toString: String)
   case object Library extends Kind("library")
