@@ -548,9 +548,9 @@ case class UnversionedCoordinate(group: MavenGroup, artifact: MavenArtifactId) {
    */
   def toBazelRepoName(namePrefix: NamePrefix): String =
     s"${namePrefix.asString}$asString".map {
-      case '.' => "_"  // todo, we should have something such that if a != b this can't be equal, but this can
-      case '-' => "_"
-      case ':' => "_"
+      case '.' => "-"  // todo, we should have something such that if a != b this can't be equal, but this can
+      case '-' => "-"
+      case ':' => "-"
       case other => other
     }
     .mkString
@@ -560,7 +560,7 @@ case class UnversionedCoordinate(group: MavenGroup, artifact: MavenArtifactId) {
     */
   def toTargetName: String =
     artifact.asString.map {
-      case ':' => '_'
+      case ':' => '-'
       case o => o
     }
 
@@ -570,7 +570,7 @@ case class UnversionedCoordinate(group: MavenGroup, artifact: MavenArtifactId) {
       case o => o
     }
     s"jar/${namePrefix.asString}$g/${toTargetName}".map {
-      case '.' | '-' => '_'
+      case '.' | '_' => '-'
       case o => o
     }
   }

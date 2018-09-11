@@ -1,3 +1,6 @@
+**This repository is a fork from [johnynek/bazel-deps](https://github.com/johnynek/bazel-deps) and has the following modifications:**
+- package and target label naming convention uses hyphens (e.g. `package-name:target-name`), rather than underscores (e.g. `package_name:target_name`, aka. `snake_case`).
+
 # bazel-deps
 
 Generate [bazel](http://bazel.io/) dependencies transitively for maven artifacts, with scala
