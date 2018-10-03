@@ -108,8 +108,8 @@ case class Target(
       renderList(Doc.text("["), pcs.toList.map(pc => ":" + getPluginTargetName(pcs, pc)).sorted, Doc.text("]"))(quote)
 
     def getPluginTargetName(pcs: Set[ProcessorClass], pc: ProcessorClass) =
-      if (pcs.size == 1) s"${name.name}_plugin"
-      else s"${name.name}_plugin_${fqnToLabelFragment(pc.asString)}"
+      if (pcs.size == 1) s"${name.name}-plugin"
+      else s"${name.name}-plugin-${fqnToLabelFragment(pc.asString)}"
 
     def renderPlugins(pcs: Set[ProcessorClass], exports: Set[Label], licenses: Set[String]): Doc =
       if (pcs.isEmpty) Doc.empty
