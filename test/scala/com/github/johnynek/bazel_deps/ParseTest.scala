@@ -29,6 +29,8 @@ class ParseTest extends FunSuite {
                 Some(Set("core", "args", "date").map(Subproject(_))),
                 None,
                 None,
+                None,
+                None,
                 None))),
           None,
           None)))
@@ -46,6 +48,7 @@ class ParseTest extends FunSuite {
                 |  thirdPartyDirectory: 3rdparty/jvm
                 |  resolverCache: bazel_output_base
                 |  licenses: ["unencumbered", "permissive"]
+                |  buildFileName: "BUILD.bazel"
                 |""".stripMargin('|')
 
     assert(Decoders.decodeModel(Yaml, str) ==
@@ -57,6 +60,8 @@ class ParseTest extends FunSuite {
                 Language.Scala(Version("2.11.7"), true),
                 Some(Version("0.16.0")),
                 Some(Set("core", "args", "date").map(Subproject(_))),
+                None,
+                None,
                 None,
                 None,
                 None))),
@@ -73,7 +78,8 @@ class ParseTest extends FunSuite {
               None,
               Some(Set("unencumbered", "permissive")),
               None,
-              None)))))
+              None,
+              Some("BUILD.bazel"))))))
   }
   test("parse empty subproject version") {
     val str = """dependencies:
@@ -99,6 +105,8 @@ class ParseTest extends FunSuite {
                 Some(Set("", "core", "args", "date").map(Subproject(_))),
                 None,
                 None,
+                None,
+                None,
                 None))),
           None,
           Some(
@@ -106,6 +114,7 @@ class ParseTest extends FunSuite {
               None,
               Some(DirectoryName("3rdparty/jvm")),
               Some(Set(Language.Scala(Version("2.11.7"), true), Language.Java)),
+              None,
               None,
               None,
               None,
@@ -140,7 +149,65 @@ class ParseTest extends FunSuite {
                 None,
                 None,
                 None,
-                Some(Set(ProcessorClass("com.google.auto.value.processor.AutoValueProcessor")))))),
+                None,
+                Some(Set(ProcessorClass("com.google.auto.value.processor.AutoValueProcessor"))),
+                None))),
+        None,
+        None)))
+  }
+
+  test("parse a file with an annotationProcessor defined and generatesApi false") {
+    val str = """dependencies:
+                |  com.google.auto.value:
+                |    auto-value:
+                |      version: "1.5"
+                |      lang: java
+                |      generatesApi: false
+                |      processorClasses: ["com.google.auto.value.processor.AutoValueProcessor"]
+                |""".stripMargin('|')
+
+    assert(Decoders.decodeModel(Yaml, str) ==
+      Right(Model(
+        Dependencies(
+          MavenGroup("com.google.auto.value") ->
+            Map(ArtifactOrProject("auto-value") ->
+              ProjectRecord(
+                Language.Java,
+                Some(Version("1.5")),
+                None,
+                None,
+                None,
+                Some(false),
+                Some(Set(ProcessorClass("com.google.auto.value.processor.AutoValueProcessor"))),
+                None))),
+        None,
+        None)))
+  }
+
+  test("parse a file with an annotationProcessor defined and generatesApi true") {
+    val str = """dependencies:
+                |  com.google.auto.value:
+                |    auto-value:
+                |      version: "1.5"
+                |      lang: java
+                |      generatesApi: true
+                |      processorClasses: ["com.google.auto.value.processor.AutoValueProcessor"]
+                |""".stripMargin('|')
+
+    assert(Decoders.decodeModel(Yaml, str) ==
+      Right(Model(
+        Dependencies(
+          MavenGroup("com.google.auto.value") ->
+            Map(ArtifactOrProject("auto-value") ->
+              ProjectRecord(
+                Language.Java,
+                Some(Version("1.5")),
+                None,
+                None,
+                None,
+                Some(true),
+                Some(Set(ProcessorClass("com.google.auto.value.processor.AutoValueProcessor"))),
+                None))),
         None,
         None)))
   }
@@ -161,6 +228,8 @@ class ParseTest extends FunSuite {
               ProjectRecord(
                 Language.Java,
                 Some(Version("1.5")),
+                None,
+                None,
                 None,
                 None,
                 None,
@@ -189,6 +258,8 @@ class ParseTest extends FunSuite {
                 Some(Set("", "extras").map(Subproject(_))),
                 None,
                 None,
+                None,
+                None,
                 None))),
         None,
         None)))
@@ -210,6 +281,8 @@ class ParseTest extends FunSuite {
               ProjectRecord(
                 Language.Java,
                 Some(Version("1.5")),
+                None,
+                None,
                 None,
                 None,
                 None,
@@ -239,7 +312,63 @@ class ParseTest extends FunSuite {
                 None,
                 None,
                 Some(Set((MavenGroup("foo"), ArtifactOrProject(MavenArtifactId("bar:so:fancy"))))),
+                None,
+                None,
                 None))),
+        None,
+        None)))
+  }
+
+  test("parse a file that has generateNeverlink set to true") {
+    val str = """dependencies:
+                |  org.apache.tomcat:
+                |    tomcat-catalina:
+                |      version: "7.0.57"
+                |      lang: java
+                |      generateNeverlink: true
+                |""".stripMargin('|')
+
+    assert(Decoders.decodeModel(Yaml, str) ==
+      Right(Model(
+        Dependencies(
+          MavenGroup("org.apache.tomcat") ->
+            Map(ArtifactOrProject("tomcat-catalina") ->
+              ProjectRecord(
+                Language.Java,
+                Some(Version("7.0.57")),
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(true)))),
+        None,
+        None)))
+  }
+
+  test("parse a file that has generateNeverlink set to false") {
+    val str = """dependencies:
+                |  org.apache.tomcat:
+                |    tomcat-catalina:
+                |      version: "7.0.57"
+                |      lang: java
+                |      generateNeverlink: false
+                |""".stripMargin('|')
+
+    assert(Decoders.decodeModel(Yaml, str) ==
+      Right(Model(
+        Dependencies(
+          MavenGroup("org.apache.tomcat") ->
+            Map(ArtifactOrProject("tomcat-catalina") ->
+              ProjectRecord(
+                Language.Java,
+                Some(Version("7.0.57")),
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(false)))),
         None,
         None)))
   }

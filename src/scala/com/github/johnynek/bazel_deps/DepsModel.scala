@@ -427,7 +427,7 @@ case class MavenCoordinate(group: MavenGroup, artifact: MavenArtifactId, version
   def toDependencies(l: Language): Dependencies =
     Dependencies(Map(group ->
       Map(ArtifactOrProject(artifact.asString) ->
-        ProjectRecord(l, Some(version), None, None, None, None))))
+        ProjectRecord(l, Some(version), None, None, None, None, None, None))))
 }
 
 object MavenCoordinate {
@@ -464,8 +464,8 @@ sealed abstract class Language {
 }
 
 object Language {
-  case object Java extends Language {
-    def asString = "java"
+  sealed trait JavaLike extends Language {
+    def asString: String
     def asOptionsString = asString
     def mavenCoord(g: MavenGroup, a: ArtifactOrProject, v: Version): MavenCoordinate =
       MavenCoordinate(g, MavenArtifactId(a), v)
@@ -480,6 +480,15 @@ object Language {
       UnversionedCoordinate(g, MavenArtifactId(a, sp))
 
     def unmangle(m: MavenCoordinate) = m
+  }
+
+  case object Java extends JavaLike {
+    def asString = "java"
+  }
+
+  case object Kotlin extends JavaLike {
+    def asString = "kotlin"
+
   }
 
   case class Scala(v: Version, mangle: Boolean) extends Language {
@@ -583,7 +592,9 @@ case class ProjectRecord(
   modules: Option[Set[Subproject]],
   exports: Option[Set[(MavenGroup, ArtifactOrProject)]],
   exclude: Option[Set[(MavenGroup, ArtifactOrProject)]],
-  processorClasses: Option[Set[ProcessorClass]]) {
+  generatesApi: Option[Boolean],
+  processorClasses: Option[Set[ProcessorClass]],
+  generateNeverlink: Option[Boolean]) {
 
 
   // Cache this
@@ -1188,7 +1199,7 @@ object ResolverType {
   case object Aether extends ResolverType("aether")
   case object Coursier extends ResolverType("coursier")
 
-  val default = Aether
+  val default = Coursier
 
   implicit val resolverSemigroup: Semigroup[ResolverType] =
     Options.useRight.algebra[ResolverType]
@@ -1206,7 +1217,8 @@ case class Options(
   namePrefix: Option[NamePrefix],
   licenses: Option[Set[String]],
   resolverType: Option[ResolverType],
-  strictVisibility: Option[StrictVisibility]
+  strictVisibility: Option[StrictVisibility],
+  buildFileName: Option[String]
 ) {
   def isDefault: Boolean =
     versionConflictPolicy.isEmpty &&
@@ -1219,7 +1231,8 @@ case class Options(
     namePrefix.isEmpty &&
     licenses.isEmpty &&
     resolverType.isEmpty &&
-    strictVisibility.isEmpty
+    strictVisibility.isEmpty &&
+    buildFileName.isEmpty
 
   def getLicenses: Set[String] =
     licenses.getOrElse(Set.empty)
@@ -1232,6 +1245,7 @@ case class Options(
 
   def replaceLang(l: Language): Language = l match {
     case Language.Java => Language.Java
+    case Language.Kotlin => Language.Kotlin
     case s@Language.Scala(_, _) =>
       getLanguages.collectFirst { case scala: Language.Scala => scala }
         .getOrElse(s)
@@ -1262,6 +1276,9 @@ case class Options(
   def getResolverType: ResolverType =
     resolverType.getOrElse(ResolverType.default)
 
+  def getBuildFileName: String =
+    buildFileName.getOrElse("BUILD")
+
   def toDoc: Doc = {
     val items = List(
       ("versionConflictPolicy",
@@ -1283,7 +1300,8 @@ case class Options(
       ("licenses",
         licenses.map { l => list(l.toList.sorted)(quoteDoc) }),
       ("strictVisibility", strictVisibility.map { x => Doc.text(x.enabled.toString)}),
-      ("resolverType", resolverType.map(r => quoteDoc(r.asString)))
+      ("resolverType", resolverType.map(r => quoteDoc(r.asString))),
+      ("buildFileName", buildFileName.map(name => Doc.text(name)))
     ).sortBy(_._1)
      .collect { case (k, Some(v)) => (k, v) }
 
@@ -1305,7 +1323,7 @@ object Options {
    * A monoid on options that is just the point-wise monoid
    */
   implicit val optionsMonoid: Monoid[Options] = new Monoid[Options] {
-    val empty = Options(None, None, None, None, None, None, None, None, None, None, None)
+    val empty = Options(None, None, None, None, None, None, None, None, None, None, None, None)
 
     def combine(a: Options, b: Options): Options = {
       val vcp = Monoid[Option[VersionConflictPolicy]].combine(a.versionConflictPolicy, b.versionConflictPolicy)
@@ -1319,7 +1337,8 @@ object Options {
       val licenses = Monoid[Option[Set[String]]].combine(a.licenses, b.licenses)
       val resolverType = Monoid[Option[ResolverType]].combine(a.resolverType, b.resolverType)
       val strictVisibility = Monoid[Option[StrictVisibility]].combine(a.strictVisibility, b.strictVisibility)
-      Options(vcp, tpd, langs, resolvers, trans, headers, resolverCache, namePrefix, licenses, resolverType, strictVisibility)
+      val buildFileName = Monoid[Option[String]].combine(a.buildFileName, b.buildFileName)
+      Options(vcp, tpd, langs, resolvers, trans, headers, resolverCache, namePrefix, licenses, resolverType, strictVisibility, buildFileName)
     }
   }
 }
